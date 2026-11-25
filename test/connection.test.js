@@ -17,6 +17,17 @@ test('delay doubles every attempt (exponential)', () => {
   assert.equal(client.nextReconnectDelay(4), 8000);
 });
 
+test('delay sequence follows base * 2^(attempt-1)', () => {
+  const client = new ReconnectingClient({
+    baseReconnectDelayMs: 125,
+    maxReconnectDelayMs: 60000,
+  });
+  assert.deepEqual(
+    [1, 2, 3, 4, 5].map((attempt) => client.nextReconnectDelay(attempt)),
+    [125, 250, 500, 1000, 2000]
+  );
+});
+
 test('delay is capped at maxReconnectDelayMs', () => {
   const client = new ReconnectingClient({
     baseReconnectDelayMs: 1000,
