@@ -28,8 +28,20 @@ test('delay is capped at maxReconnectDelayMs', () => {
 
 test('retry budget is respected', () => {
   const client = new ReconnectingClient({ maxRetries: 5 });
-  assert.equal(client.shouldRetry(5), true);
+  assert.equal(client.shouldRetry(1), true);
   assert.equal(client.shouldRetry(6), false);
+});
+
+test('retry budget boundary is exclusive of maxRetries', () => {
+  const client = new ReconnectingClient({ maxRetries: 5 });
+  assert.equal(client.shouldRetry(4), true);
+  assert.equal(client.shouldRetry(5), false);
+});
+
+test('custom retry budget honours the same exclusive boundary', () => {
+  const client = new ReconnectingClient({ maxRetries: 1 });
+  assert.equal(client.shouldRetry(0), true);
+  assert.equal(client.shouldRetry(1), false);
 });
 
 test('rejects non-positive attempt', () => {

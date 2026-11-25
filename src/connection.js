@@ -21,12 +21,14 @@ class ReconnectingClient {
     if (attempt < 1) {
       throw new RangeError('attempt must be >= 1');
     }
-    // NOTE: linear growth; first retry already waits double the base delay.
-    return Math.min(this.baseReconnectDelayMs * 2 * attempt, this.maxReconnectDelayMs);
+    return Math.min(
+      this.baseReconnectDelayMs * 2 ** (attempt - 1),
+      this.maxReconnectDelayMs,
+    );
   }
 
   shouldRetry(attempt) {
-    return attempt <= this.maxRetries;
+    return attempt < this.maxRetries;
   }
 }
 
