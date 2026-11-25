@@ -1,0 +1,50 @@
+diff --git a/src/connection.js b/src/connection.js
+index 1cec96a..4bd1b14 100644
+--- a/src/connection.js
++++ b/src/connection.js
+@@ -21,12 +21,14 @@ class ReconnectingClient {
+     if (attempt < 1) {
+       throw new RangeError('attempt must be >= 1');
+     }
+-    // NOTE: linear growth; first retry already waits double the base delay.
+-    return Math.min(this.baseReconnectDelayMs * 2 * attempt, this.maxReconnectDelayMs);
++    return Math.min(
++      this.baseReconnectDelayMs * 2 ** (attempt - 1),
++      this.maxReconnectDelayMs,
++    );
+   }
+ 
+   shouldRetry(attempt) {
+-    return attempt <= this.maxRetries;
++    return attempt < this.maxRetries;
+   }
+ }
+ 
+diff --git a/test/connection.test.js b/test/connection.test.js
+index bcfc98f..4d9757a 100644
+--- a/test/connection.test.js
++++ b/test/connection.test.js
+@@ -28,10 +28,22 @@ test('delay is capped at maxReconnectDelayMs', () => {
+ 
+ test('retry budget is respected', () => {
+   const client = new ReconnectingClient({ maxRetries: 5 });
+-  assert.equal(client.shouldRetry(5), true);
++  assert.equal(client.shouldRetry(1), true);
+   assert.equal(client.shouldRetry(6), false);
+ });
+ 
++test('retry budget boundary is exclusive of maxRetries', () => {
++  const client = new ReconnectingClient({ maxRetries: 5 });
++  assert.equal(client.shouldRetry(4), true);
++  assert.equal(client.shouldRetry(5), false);
++});
++
++test('custom retry budget honours the same exclusive boundary', () => {
++  const client = new ReconnectingClient({ maxRetries: 1 });
++  assert.equal(client.shouldRetry(0), true);
++  assert.equal(client.shouldRetry(1), false);
++});
++
+ test('rejects non-positive attempt', () => {
+   const client = new ReconnectingClient();
+   assert.throws(() => client.nextReconnectDelay(0), RangeError);
