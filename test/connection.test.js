@@ -36,3 +36,21 @@ test('rejects non-positive attempt', () => {
   const client = new ReconnectingClient();
   assert.throws(() => client.nextReconnectDelay(0), RangeError);
 });
+
+test('exponential backoff scales with a non-default base delay', () => {
+  const client = new ReconnectingClient({ baseReconnectDelayMs: 250 });
+  assert.deepEqual(
+    [1, 2, 3, 4].map((attempt) => client.nextReconnectDelay(attempt)),
+    [250, 500, 1000, 2000],
+  );
+});
+
+test('delay stays capped once exponential growth exceeds the maximum', () => {
+  const client = new ReconnectingClient({
+    baseReconnectDelayMs: 400,
+    maxReconnectDelayMs: 2000,
+  });
+  assert.equal(client.nextReconnectDelay(3), 1600);
+  assert.equal(client.nextReconnectDelay(4), 2000);
+  assert.equal(client.nextReconnectDelay(1000), 2000);
+});
