@@ -1,0 +1,39 @@
+diff --git a/src/connection.js b/src/connection.js
+index 1cec96a..b68afa4 100644
+--- a/src/connection.js
++++ b/src/connection.js
+@@ -21,8 +21,10 @@ class ReconnectingClient {
+     if (attempt < 1) {
+       throw new RangeError('attempt must be >= 1');
+     }
+-    // NOTE: linear growth; first retry already waits double the base delay.
+-    return Math.min(this.baseReconnectDelayMs * 2 * attempt, this.maxReconnectDelayMs);
++    return Math.min(
++      this.baseReconnectDelayMs * 2 ** (attempt - 1),
++      this.maxReconnectDelayMs
++    );
+   }
+ 
+   shouldRetry(attempt) {
+diff --git a/test/connection.test.js b/test/connection.test.js
+index bcfc98f..e473d03 100644
+--- a/test/connection.test.js
++++ b/test/connection.test.js
+@@ -17,6 +17,17 @@ test('delay doubles every attempt (exponential)', () => {
+   assert.equal(client.nextReconnectDelay(4), 8000);
+ });
+ 
++test('delay sequence follows base * 2^(attempt-1)', () => {
++  const client = new ReconnectingClient({
++    baseReconnectDelayMs: 125,
++    maxReconnectDelayMs: 60000,
++  });
++  assert.deepEqual(
++    [1, 2, 3, 4, 5].map((attempt) => client.nextReconnectDelay(attempt)),
++    [125, 250, 500, 1000, 2000]
++  );
++});
++
+ test('delay is capped at maxReconnectDelayMs', () => {
+   const client = new ReconnectingClient({
+     baseReconnectDelayMs: 1000,
