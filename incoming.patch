@@ -1,0 +1,37 @@
+diff --git a/src/connection.js b/src/connection.js
+index 1cec96a..b68afa4 100644
+--- a/src/connection.js
++++ b/src/connection.js
+@@ -21,8 +21,10 @@ class ReconnectingClient {
+     if (attempt < 1) {
+       throw new RangeError('attempt must be >= 1');
+     }
+-    // NOTE: linear growth; first retry already waits double the base delay.
+-    return Math.min(this.baseReconnectDelayMs * 2 * attempt, this.maxReconnectDelayMs);
++    return Math.min(
++      this.baseReconnectDelayMs * 2 ** (attempt - 1),
++      this.maxReconnectDelayMs
++    );
+   }
+ 
+   shouldRetry(attempt) {
+diff --git a/test/connection.test.js b/test/connection.test.js
+index bcfc98f..7589c42 100644
+--- a/test/connection.test.js
++++ b/test/connection.test.js
+@@ -26,6 +26,15 @@ test('delay is capped at maxReconnectDelayMs', () => {
+   assert.equal(client.nextReconnectDelay(9), 5000);
+ });
+ 
++test('exponential growth is capped without over-delaying earlier attempts', () => {
++  const client = new ReconnectingClient({
++    baseReconnectDelayMs: 1000,
++    maxReconnectDelayMs: 5000,
++  });
++  assert.equal(client.nextReconnectDelay(3), 4000);
++  assert.equal(client.nextReconnectDelay(4), 5000);
++});
++
+ test('retry budget is respected', () => {
+   const client = new ReconnectingClient({ maxRetries: 5 });
+   assert.equal(client.shouldRetry(5), true);
