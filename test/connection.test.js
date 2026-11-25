@@ -26,6 +26,15 @@ test('delay is capped at maxReconnectDelayMs', () => {
   assert.equal(client.nextReconnectDelay(9), 5000);
 });
 
+test('exponential growth is capped without over-delaying earlier attempts', () => {
+  const client = new ReconnectingClient({
+    baseReconnectDelayMs: 1000,
+    maxReconnectDelayMs: 5000,
+  });
+  assert.equal(client.nextReconnectDelay(3), 4000);
+  assert.equal(client.nextReconnectDelay(4), 5000);
+});
+
 test('retry budget is respected', () => {
   const client = new ReconnectingClient({ maxRetries: 5 });
   assert.equal(client.shouldRetry(5), true);
