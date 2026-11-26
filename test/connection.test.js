@@ -32,6 +32,15 @@ test('retry budget is respected', () => {
   assert.equal(client.shouldRetry(6), false);
 });
 
+test('regression: growth is exponential, not linear', () => {
+  const client = new ReconnectingClient({ baseReconnectDelayMs: 500, maxReconnectDelayMs: 60000 });
+  assert.equal(client.nextReconnectDelay(1), 500);
+  assert.equal(client.nextReconnectDelay(2), 1000);
+  assert.equal(client.nextReconnectDelay(3), 2000);
+  assert.equal(client.nextReconnectDelay(4), 4000);
+  assert.equal(client.nextReconnectDelay(5), 8000);
+});
+
 test('rejects non-positive attempt', () => {
   const client = new ReconnectingClient();
   assert.throws(() => client.nextReconnectDelay(0), RangeError);
